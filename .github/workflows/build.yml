@@ -1,0 +1,29 @@
+name: Build and isolated tests
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Isolated tests (no XQ or desktop executable launched)
+        run: python -m unittest discover -s tests -v
+      - name: Build unsigned executable (do not launch)
+        shell: powershell
+        run: .\Build.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xq-compile-runner-unsigned-experimental
+          path: bin/XqCompileRunner.exe
+          if-no-files-found: error
+          retention-days: 14
