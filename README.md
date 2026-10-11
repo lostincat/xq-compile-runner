@@ -38,9 +38,13 @@ python -m unittest discover -s tests -v
 4. 通過簽章與 Windows 執行檢查後，才可執行：
 
 ```powershell
-python runner.py bin/XqCompileRunner.exe config.local.json request.local.json runs/new-unique-job
+python tools/acceptance/runner.py bin/XqCompileRunner.exe config.local.json request.local.json runs/new-unique-job --release APPROVED_RELEASE_JSON
 ```
 
 呼叫器以 `PASS`／`FAIL` 與退出碼 0／1 表示結果。警告數不為零仍可能編譯成功，呼叫者應另設警告政策。程式不提供排程、開機啟動、網路埠或 Open WebUI 部署；外部系統需先完成自己的認證、佇列、序列化及證據驗證。
 
 詳見 [安全限制](SECURITY.md)、[人工驗收](docs/ACCEPTANCE.md)、[來源說明](docs/PROVENANCE.md)。
+
+## 簽章檢查與分開標示的驗收
+
+請使用 [驗收工具](tools/acceptance/README.md) 作為簽署後的操作入口；根目錄 `runner.py` 是舊版協定範例，沒有新增的簽章入口檢查，不適合直接作為部署入口。雲端新增 29 項隔離測試，與原有 12 項測試分開執行；所有真正桌面案例固定標為 `NOT_RUN`，不因 CI 綠燈視為已驗收。

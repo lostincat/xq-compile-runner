@@ -27,3 +27,57 @@ jobs:
           path: bin/XqCompileRunner.exe
           if-no-files-found: error
           retention-days: 14
+  acceptance-regression:
+    name: Acceptance regression — SIMULATED only
+    runs-on: windows-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: tools/acceptance
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Run isolated regression (no executable launched)
+        run: python run_regression.py --output simulated-results-ci.json
+      - name: Generate DESKTOP NOT_RUN plan (never execute)
+        if: always()
+        run: |
+          python acceptance.py --output desktop-plan-ci
+          if ($LASTEXITCODE -ne 2) { throw 'Plan generation did not return NOT_RUN' }
+          $plan = Get-Content desktop-plan-ci/report.json -Raw | ConvertFrom-Json
+          if ($plan.overall -ne 'NOT_RUN') { throw 'Unexpected desktop execution status' }
+          foreach ($case in $plan.cases.PSObject.Properties) {
+            if ($case.Value.test_status -ne 'NOT_RUN') { throw 'Desktop case must remain NOT_RUN' }
+          }
+          exit 0
+      - name: Separate simulated and desktop status
+        if: always()
+        run: |
+          $simulated = 'FAIL (report missing)'
+          if (Test-Path simulated-results-ci.json) {
+            $r = Get-Content simulated-results-ci.json -Raw | ConvertFrom-Json
+            $simulated = "$($r.status); tests=$($r.tests), failures=$($r.failures), errors=$($r.errors), skipped=$($r.skipped)"
+          }
+          @"
+          ## Acceptance results
+          | Suite | Result |
+          | --- | --- |
+          | SIMULATED / isolated | $simulated |
+          | Real XQ desktop | NOT_RUN — not validated by CI |
+
+          No XQ or unsigned desktop executable was launched. A green CI result does not qualify real desktop acceptance.
+          "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: acceptance-reports-simulated-and-desktop-not-run
+          path: |
+            tools/acceptance/simulated-results-ci.json
+            tools/acceptance/desktop-plan-ci/report.json
+          if-no-files-found: error
+          retention-days: 14

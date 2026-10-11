@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+desktop.lock
+release.local.json
+*.local.json
+simulated-results-*.json
+desktop-plan*/
+runs/
+*.exe
+*.dll
